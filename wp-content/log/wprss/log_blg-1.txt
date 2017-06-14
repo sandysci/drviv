@@ -1,0 +1,4 @@
+[28-01-2017 19:10:12] [Error] WPRSS > wprss_get_feed_items:
+Failed to fetch feed "http://www.kefaloniapress.gr/aggelies/classified/". cURL error 6: Could not resolve host: www.kefaloniapress.gr
+
+
