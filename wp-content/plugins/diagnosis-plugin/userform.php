@@ -9,7 +9,7 @@ class User{
 	private $booked_date;
 	private $first_name;
 	private $last_name;
-	private $file_url;
+	private $file_url = array();
 	private $comments;
 	private $diagnosisdata,$userdata,$diagnosisfiledata = array();
 	private $reg_errors = array();
@@ -111,30 +111,28 @@ class User{
 				// 	echo $i;
 				// 	// var_dump($value);
 				// 	echo "<br>";
-					$this->uploadedfile = $_FILES['file_url'];
-					var_dump($this->uploadedfile);
+					$files = $_FILES['file_url'];
 					$ext = array();
 					foreach($_FILES['file_url']['type'] as $key => $value){
 					  $ext[$key]= $this->getfileMime($_FILES['file_url']['type'][$key]);
 					}
 					foreach($_FILES['file_url']['name'] as $key => $value){
-						if($files['name'][$key]){
+						if($_FILES['file_url']['name'][$key]){
 							$file = array(
-								'name' => time().'.'.$ext[$key],
-								'type' =>$this->uploadedfile['type'][$key],
-								'tmp_name' =>$this->uploadedfile['tmp_name'][$key],
-								'error' =>$this->uploadedfile['error'][$key],
-								'size' =>$this->uploadedfile['size'][$key],
+								'name' => time().$key.'.'.$ext[$key],
+								'type' =>$_FILES['file_url']['type'][$key],
+								'tmp_name' =>$_FILES['file_url']['tmp_name'][$key],
+								'error' =>$_FILES['file_url']['error'][$key],
+								'size' =>$_FILES['file_url']['size'][$key],
 								);
 							
 							$upload_overrides = array( 'test_form' => false );
-
-					        $movefile = wp_handle_upload( $this-, $upload_overrides );
+							$this->uploadedfile[$key] = $file;
+					        wp_handle_upload( $file, $upload_overrides );
 						}
 						
-						
-
 					}
+					var_dump($this->uploadedfile);
 					// var_dump($ext);
 				 //    $upload_overrides = array( 'test_form' => false );
 
@@ -155,7 +153,7 @@ class User{
 		     //var_dump($this->uploadedfile);
 			$this->mobile = sanitize_text_field($_POST['mobile']);
 			$this->email = sanitize_text_field($_POST['email']);
-			$this->file_url = $this->uploadedfile['name'];
+			$this->file_url = $this->uploadedfile;
 			$this->first_name = sanitize_text_field($_POST['first_name']);
 			$this->last_name = sanitize_text_field($_POST['last_name']);
 			$this->comments = sanitize_text_field($_POST['comments']);
@@ -184,7 +182,7 @@ class User{
 			}
 
 
-			//$this->complete_registration();	
+			$this->complete_registration();	
 				
 	 }
 	}
@@ -207,9 +205,10 @@ class User{
 	        );
 
 	       	 $this->diagnosisfiledata = array(
-	       	 	'file_url' => $this->file_url,
-	       	 	'date_uploaded' => $this->created_at
+	       	 	'file_url' => $this->file_url
 	       	  );
+	       	 $date_uploaded = $this->created_at;
+	       	 $file_url = $this->file_url;
 	       	 $user_count = $wpdb->get_row( "SELECT * FROM $wpdb->users WHERE user_email LIKE '$this->email'" );
 	       	 //var_dump ($user_count->ID);
 	       	 // echo $user_count['ID'];
@@ -224,12 +223,12 @@ class User{
 			 		);
 			 	$user= $this->db->storeUser($this->userdata);
 			 	$this->diagnosisdata['user_id'] =$user->ID;
-			    $diagnosis= $this->db->storeDiagnosis($this->diagnosisdata,$this->diagnosisfiledata);
+			    $diagnosis= $this->db->storeDiagnosis($this->diagnosisdata,$date_uploaded,$file_url);
 
 			 }
 			 else{
 			 	$this->diagnosisdata['user_id']= $user_count->ID;
-			    $diagnosis= $this->db->storeDiagnosis($this->diagnosisdata,$this->diagnosisfiledata);
+			    $diagnosis= $this->db->storeDiagnosis($this->diagnosisdata,$date_uploaded,$file_url);
 			 }
 			 //var_dump($user_count);
 	        //var_dump($this->diagnosisdata);

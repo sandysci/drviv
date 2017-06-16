@@ -1,7 +1,11 @@
 <?php
 
+//require plugin_dir_path( dirname( __FILE__ ) ) . 'diagnosis-plugin/database.php';
 class DiagnosisPage{
 
+	public function __construct(){
+
+	} 
 
 	function diagnosis_page_function(){
 	    
@@ -88,19 +92,14 @@ class DiagnosisPage{
 	    /*add any form processing code here in PHP:*/
 	    if(isset($_GET['id']) && is_numeric($_GET['id'])){
 			 $id = $_GET['id'];
-			 $diagnosisdetail= $wpdb->get_results("SELECT d.first_name,d.last_name,d.email,d.booked_date,d.mobile,d.status,d.comments, GROUP_CONCAT(du.file_url,'---') as fileurl FROM wp_diagnosis_uploads AS du 
+			 $diagnosisdetail = $wpdb->get_results("SELECT d.first_name,d.last_name,d.email,d.booked_date,d.mobile,d.status,d.comments, GROUP_CONCAT(du.file_url,'---') as fileurl FROM wp_diagnosis_uploads AS du 
 				INNER JOIN wp_diagnosis AS d ON du.diagnosis_id = d.ID WHERE d.ID = $id AND du.diagnosis_id = $id GROUP BY du.diagnosis_id");
 
 			 if(count($diagnosisdetail)  > 0){
 			 	//var_dump(plugin_dir_url( __FILE__ ));
 	        	$files = $diagnosisdetail[0]->fileurl;
 	        	$file_url = explode('---', $files);
-	        	// var_dump($file_url);
-	        	// echo '<img src='. WP_CONTENT_DIR.'/uploads/2017/06/sandy.jpg border="0" style="padding-right:44px;"/>';
-	        	// echo '<img src='.wp_upload_dir()['url'].'/'.$file_url[0].' />';
-	        	// echo '<img src='.wp_upload_dir()['url'].'/1497389429.jpeg />';
-	        	// echo '<img alt="User Pic" width ="200" height ="200" src="'.wp_upload_dir()['path'].'/2017/06/sandy.jpg'.'" id="profile-image1" class="img-circle img-responsive"> ';
-	        	// echo '<a href = '.$file_url[0].'>'.wp_upload_dir()['baseurl'].'/2017/06/sandy.jpg'.'</a>';
+	        	//var_dump($file_url);
 	        	echo '
 			 	<div class="container">
 					<div class="row">
@@ -117,6 +116,9 @@ class DiagnosisPage{
 				            if(isset($file_url) && count($file_url) >0)
 				            {	
 					          for ($i = 0 ; $i < count($file_url) - 1 ; $i++) {
+					          	if (strpos($file_url[$i], ',') !== false) {
+								   $file_url[$i] = str_replace(",","",$file_url[$i]);
+								}
 						        echo '<div class="col-sm-6">
 			                    <div  align="center"> <img alt="User Pic" src='.wp_upload_dir()['url'].'/'.$file_url[$i].' id="profile-image1" class="img-circle img-responsive"> 
 						         </div>
@@ -164,7 +166,7 @@ class DiagnosisPage{
 								<div class="bot-border"></div>
 
 								<div class="col-sm-5 col-xs-6 tital " >Comments:</div><div class="col-sm-7">'.$diagnosisdetail[0]->comments.'</div>
-
+								<div><a href =admin.php?page=diagnosis_chat_page&daignosis_id='.$id.'> Send private message</a> </div>
 
 						            <!-- /.box-body -->
 						          </div>
@@ -173,6 +175,7 @@ class DiagnosisPage{
 						    </div> 
 						    </div>
 						</div> 	';
+				
 				}
 
 			 else if( count($diagnosisdetail)  == 0){
@@ -253,6 +256,122 @@ class DiagnosisPage{
 	     	wp_die( "No Result found");
 	     }
 	   
+	  }
+
+	  function diagnosis_chat_function(){
+
+	  	$database = new DignosisDB();
+	    
+	  	if(!current_user_can('manage_options')){
+	        wp_die( __( 'You do not have sufficient permissions to access this page.' ) );
+	    }
+	    if(isset($_GET['daignosis_id']) && !empty($_GET['daignosis_id']) && is_numeric($_GET['daignosis_id'])){
+	    	$id = $_GET['daignosis_id'];
+	    	$messages = $database->getDiagnosisMessage($id);
+	    	echo '<div class="container">
+					<div class="row " style="padding-top:40px;">
+				
+					    <br />
+					   <div class="col-md-8">
+				        <div class="panel panel-info">
+				            <div class="panel-heading">
+				                DIAGNOSIS CHAT HISTORY
+				            </div>
+				        <div class="panel-body">';
+				    if(count($messages) > 0){
+					    echo '<ul class="media-list">';
+						    foreach ($messages as $key => $message) {
+						      	echo $message;
+						      	# code...
+							  echo' <li class="media">
+					            <div class="media-body">
+				                   <div class="media">
+					                    <a class="pull-left" href="#">
+					                        <img class="media-object img-circle " src="assets/img/user.png" />
+					                    </a>
+				                    <div class="media-body" >
+				                        Donec sit amet ligula enim. Duis vel condimentum massa.
+				      						Donec sit amet ligula enim. Duis vel condimentum massa.Donec sit amet ligula enim. 
+				                                Duis vel condimentum massa.
+				                                Donec sit amet ligula enim. Duis vel condimentum massa.
+				                                <br />
+				                                <small class="text-muted">Alex Deo | 23rd June at 5:00pm</small>
+				                                <hr />
+				                          </div>
+				                    </div>
+				                   </div>
+			    				</li>';
+			    			}
+	                 	echo '</ul>';
+				    }
+				    else{
+				    	echo '<ul class="media-list">
+					   <li class="media">
+			            <div class="media-body">
+		                   <div class="media">
+		                    <div class="media-body" >
+		                        No Message yet......
+		                          </div>
+		                    </div>
+		                   </div>
+	    				</li>
+                 </ul>';
+				    }
+				echo'
+            </div>
+            <div class="panel-footer">
+                <form action="' . $_SERVER['REQUEST_URI'] . '" method="post">
+                <div class="input-group">
+                    <input type="text" class="form-control" required placeholder="Enter Message" name ="message" />
+                    <span class="input-group-btn">
+                        <input type="submit" class="btn btn-info" name ="submit">SEND</button>
+                    </span>
+            	</div>
+                </form>
+            </div>
+        </div>
+    </div>';
+    if(isset($_POST['submit'])){
+    	// echo "hellosandy";
+    	$message =  sanitize_text_field($_POST['message']);
+    	$diagnosis_id = $id;
+    	$database->storeDiagnosisMessage($id,$message);
+
+    }
+    echo '
+    <div class="col-md-4">
+          <div class="panel panel-primary">
+            <div class="panel-heading">
+               ONLINE USERS
+            </div>
+            <div class="panel-body">
+                <ul class="media-list">
+                	<li class="media">
+	                    <div class="media-body">
+	                        <div class="media">
+	                            <a class="pull-left" href="#">
+	                                <img class="media-object img-circle" style="max-height:40px;" src="assets/img/user.png" />
+	                            </a>
+	                            <div class="media-body" >
+	                                <h5>Alex Deo | User </h5>
+	                         	    <small class="text-muted">Active From 3 hours</small>
+	                            </div>
+	                        </div>
+	                    </div>
+	                </li>
+                 </ul>
+                </div>
+             </div>      
+    </div>
+</div>
+  </div>
+';
+	    	
+	    }
+	    else{
+	    	wp_die( __( 'You cant access this page.' ) );
+	    }
+
 	  }
 }
 ?>
